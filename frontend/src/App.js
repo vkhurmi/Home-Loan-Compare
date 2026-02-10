@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { PlusCircle, RefreshCw, Download } from 'lucide-react';
 
 // Backend API URL - make sure backend is running on port 3001
-const API_URL = 'http://localhost:3001';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 // Debug: Log API calls
 const fetchWithLog = async (url, options) => {

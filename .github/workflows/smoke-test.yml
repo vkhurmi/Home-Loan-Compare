@@ -1,0 +1,51 @@
+name: Smoke tests
+
+on:
+  push:
+    branches: [ main ]
+  deployment_status:
+    types: ["success", "created"]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Smoke tests against production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq (for JSON assertions)
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run smoke tests
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PRODUCTION_URL:-}" ]; then
+            echo "ERROR: PRODUCTION_URL secret is not set"; exit 1
+          fi
+
+          echo "Checking health endpoint: $PRODUCTION_URL/health"
+          # retry a few times in case the service is still warm
+          n=0
+          until [ $n -ge 5 ]
+          do
+            if curl -sSf "$PRODUCTION_URL/health" -o /tmp/health.json; then
+              echo "Health response:"; cat /tmp/health.json
+              jq -e '.status == "ok"' /tmp/health.json
+              echo "Health OK"; break
+            fi
+            n=$((n+1))
+            echo "Health check failed, retrying ($n/5)..."
+            sleep 5
+          done
+          if [ $n -ge 5 ]; then
+            echo "Health endpoint did not return OK after retries"; exit 1
+          fi
+
+          echo "Checking API endpoint: $PRODUCTION_URL/api/rates/latest"
+          curl -sSf "$PRODUCTION_URL/api/rates/latest" -o /tmp/latest.json
+          echo "API /api/rates/latest returned:"; jq -c '.' /tmp/latest.json | sed -n '1,5p'
+          echo "Smoke tests passed"
