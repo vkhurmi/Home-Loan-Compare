@@ -2,10 +2,9 @@ name: Daily Rate Scraper
 
 on:
   schedule:
-    # Runs at 9 AM NZST (8 PM UTC - adjust for NZST/NZDT)
+    # Runs at 9 AM NZST (8 PM UTC)
     - cron: '0 20 * * *'
   
-  # Allow manual trigger from GitHub UI
   workflow_dispatch:
 
 jobs:
@@ -20,22 +19,31 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          # Remove cache to avoid the warning
       
-      - name: Install system dependencies for Puppeteer
+      - name: Install Puppeteer dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             chromium-browser \
-            libgbm1 \
-            libasound2 \
-            libatk-bridge2.0-0 \
-            libgtk-3-0 \
-            libnss3 \
-            libxss1 \
-            libxtst6 \
+            ca-certificates \
             fonts-liberation \
-            libappindicator3-1
+            libappindicator3-1 \
+            libasound2t64 \
+            libatk-bridge2.0-0 \
+            libatk1.0-0 \
+            libcups2 \
+            libdbus-1-3 \
+            libdrm2 \
+            libgbm1 \
+            libgtk-3-0 \
+            libnspr4 \
+            libnss3 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libxkbcommon0 \
+            libxrandr2 \
+            xdg-utils
       
       - name: Install scraper dependencies
         working-directory: ./scraper
@@ -48,12 +56,10 @@ jobs:
           PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
         run: node scraper.js --now
       
-      - name: Check scraping results
+      - name: Check results
         if: success()
-        run: echo "✅ Scraping completed successfully at $(date)"
+        run: echo "✅ Scraping completed at $(date)"
       
       - name: Notify on failure
         if: failure()
-        run: |
-          echo "❌ Scraper failed at $(date)"
-          echo "Check the logs above for details"
+        run: echo "❌ Scraper failed - check logs above"
