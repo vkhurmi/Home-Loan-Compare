@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer');
 const axios = require('axios');
 require('dotenv').config();
 
-const API_URL = process.env.API_URL || 'http://localhost:3001';
+const API_URL = process.env.API_URL || 'https://home-loan-compare-production.up.railway.app';
 
 // Helper function to wait
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
