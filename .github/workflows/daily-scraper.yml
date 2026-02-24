@@ -1,0 +1,61 @@
+name: Daily Rate Scraper
+
+on:
+  schedule:
+    # Runs at 9 AM NZST (8 PM UTC - adjust for NZST/NZDT)
+    # NZST (winter) = UTC+12, NZDT (summer) = UTC+13
+    - cron: '0 20 * * *'  # 8 PM UTC = 9 AM NZDT (summer)
+  
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  scrape-rates:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: scraper/package-lock.json
+      
+      - name: Install system dependencies for Puppeteer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            chromium-browser \
+            libgbm1 \
+            libasound2 \
+            libatk-bridge2.0-0 \
+            libgtk-3-0 \
+            libnss3 \
+            libxss1 \
+            libxtst6 \
+            fonts-liberation \
+            libappindicator3-1
+      
+      - name: Install scraper dependencies
+        working-directory: ./scraper
+        run: npm ci || npm install
+      
+      - name: Run scraper
+        working-directory: ./scraper
+        env:
+          API_URL: ${{ secrets.RAILWAY_BACKEND_URL }}
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+        run: node scraper.js --now
+      
+      - name: Check scraping results
+        if: success()
+        run: echo "✅ Scraping completed successfully at $(date)"
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Scraper failed at $(date)"
+          echo "Check the logs above for details"
