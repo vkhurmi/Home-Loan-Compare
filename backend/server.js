@@ -322,8 +322,8 @@ app.get('/health', async (req, res) => {
   const health = { status: 'ok', timestamp: new Date().toISOString() };
 
   try {
-    // If you have a DB check, wrap it and don’t throw out of /health
-    await checkDbConnection(); // your existing check
+    // Simple DB check: try a basic query
+    await pool.query('SELECT 1');
     health.database = 'ok';
   } catch (err) {
     health.database = 'unavailable';
@@ -335,8 +335,8 @@ app.get('/health', async (req, res) => {
 
 // Start server: listen immediately so healthchecks succeed, initialize DB in background
 const startServer = async () => {
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Server listening on http://0.0.0.0:${port}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on http://0.0.0.0:${PORT}`);
   });
 
   // Initialize DB but don't block server startup; log errors instead of crashing
