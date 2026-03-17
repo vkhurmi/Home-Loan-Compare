@@ -318,14 +318,25 @@ app.get('/api/alerts/:email', async (req, res) => {
 });
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  const health = { status: 'ok', timestamp: new Date().toISOString() };
+
+  try {
+    // If you have a DB check, wrap it and don’t throw out of /health
+    await checkDbConnection(); // your existing check
+    health.database = 'ok';
+  } catch (err) {
+    health.database = 'unavailable';
+    console.warn('DB healthcheck failed:', err.message);
+  }
+
+  res.status(200).json(health);
 });
 
 // Start server: listen immediately so healthchecks succeed, initialize DB in background
 const startServer = async () => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server listening on http://0.0.0.0:${port}`);
   });
 
   // Initialize DB but don't block server startup; log errors instead of crashing
