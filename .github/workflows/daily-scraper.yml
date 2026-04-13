@@ -24,7 +24,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            chromium-browser \
+            chromium \
             ca-certificates \
             fonts-liberation \
             libappindicator3-1 \
@@ -44,11 +44,21 @@ jobs:
             libxkbcommon0 \
             libxrandr2 \
             xdg-utils
-      
+
+      - name: Debug scraper folder
+        run: |
+          ls -la ./scraper
+          cat ./scraper/package.json || true
+
       - name: Install scraper dependencies
         working-directory: ./scraper
-        run: npm install
-      
+        env:
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+        run: |
+          npm config set progress=false
+          npm ci --silent
+        timeout-minutes: 10
+              
       - name: Run scraper
         working-directory: ./scraper
         env:

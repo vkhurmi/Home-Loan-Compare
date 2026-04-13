@@ -216,65 +216,65 @@ const NZHomeLoanTracker = () => {
 
   if (loading && rates.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-warm-50 via-warm-100 to-warm-200 flex items-center justify-center p-4">
         <div className="text-center">
-          <RefreshCw className="animate-spin mx-auto mb-4" size={48} />
-          <p className="text-slate-600">Loading rates...</p>
+          <RefreshCw className="animate-spin mx-auto mb-4 text-accent-orange" size={48} />
+          <p className="text-warm-700 font-medium">Loading rates...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-warm-50 via-warm-100 to-warm-200 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
+        <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-slate-800 mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-warm-900 mb-2 font-display">
                 NZ Home Loan Rates Tracker
               </h1>
-              <p className="text-slate-600">Compare mortgage rates across New Zealand banks</p>
+              <p className="text-warm-700">Compare mortgage rates across New Zealand banks</p>
               {error && (
-                <p className="text-amber-600 text-sm mt-2">⚠️ {error}</p>
+                <p className="text-accent-terracotta text-sm mt-2 font-medium">⚠️ {error}</p>
               )}
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 md:gap-3">
               <button
                 onClick={fetchRates}
-                className="flex items-center gap-2 bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition"
+                className="flex items-center gap-2 glass-card bg-white/70 text-warm-900 px-4 py-2 hover:bg-white/90 transition btn-modern"
               >
-                <RefreshCw size={20} />
-                Refresh
+                <RefreshCw size={18} />
+                <span className="hidden sm:inline">Refresh</span>
               </button>
               <button
                 onClick={exportData}
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                className="flex items-center gap-2 glass-card bg-white/70 text-warm-900 px-4 py-2 hover:bg-white/90 transition btn-modern"
               >
-                <Download size={20} />
-                Export CSV
+                <Download size={18} />
+                <span className="hidden sm:inline">Export CSV</span>
               </button>
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                className="flex items-center gap-2 bg-gradient-to-r from-accent-orange to-accent-terracotta text-white px-4 py-2 rounded-lg hover:shadow-lg transition btn-modern"
               >
-                <PlusCircle size={20} />
-                Add Rate
+                <PlusCircle size={18} />
+                <span className="hidden sm:inline">Add Rate</span>
               </button>
             </div>
           </div>
         </header>
 
         {showAddForm && (
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h3 className="text-xl font-semibold mb-4">Add New Rate Entry</h3>
+          <div className="glass-card bg-white/90 p-4 md:p-6 mb-6 animate-slide-up">
+            <h3 className="text-lg md:text-xl font-bold text-warm-900 mb-4 font-display">Add New Rate Entry</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Bank</label>
+                <label className="block text-sm font-semibold text-warm-800 mb-1">Bank</label>
                 <select
                   value={formData.bank_id}
                   onChange={(e) => setFormData({...formData, bank_id: e.target.value})}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
+                  className="w-full p-2 modern-input bg-warm-50"
                 >
                   <option value="">Select Bank</option>
                   {banks.map(bank => (
@@ -283,68 +283,68 @@ const NZHomeLoanTracker = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                <label className="block text-sm font-semibold text-warm-800 mb-1">Date</label>
                 <input
                   type="date"
                   value={formData.rate_date}
                   onChange={(e) => setFormData({...formData, rate_date: e.target.value})}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
+                  className="w-full p-2 modern-input bg-warm-50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">1 Year Rate (%)</label>
+                <label className="block text-sm font-semibold text-warm-800 mb-1">1 Year Rate (%)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.term_1year}
                   onChange={(e) => setFormData({...formData, term_1year: e.target.value})}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
+                  className="w-full p-2 modern-input bg-warm-50"
                   placeholder="6.50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">2 Year Rate (%)</label>
+                <label className="block text-sm font-semibold text-warm-800 mb-1">2 Year Rate (%)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.term_2year}
                   onChange={(e) => setFormData({...formData, term_2year: e.target.value})}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
+                  className="w-full p-2 modern-input bg-warm-50"
                   placeholder="6.20"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">3 Year Rate (%)</label>
+                <label className="block text-sm font-semibold text-warm-800 mb-1">3 Year Rate (%)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.term_3year}
                   onChange={(e) => setFormData({...formData, term_3year: e.target.value})}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
+                  className="w-full p-2 modern-input bg-warm-50"
                   placeholder="5.90"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">5 Year Rate (%)</label>
+                <label className="block text-sm font-semibold text-warm-800 mb-1">5 Year Rate (%)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.term_5year}
                   onChange={(e) => setFormData({...formData, term_5year: e.target.value})}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
+                  className="w-full p-2 modern-input bg-warm-50"
                   placeholder="5.80"
                 />
               </div>
               <div className="md:col-span-2 lg:col-span-3 flex gap-3">
                 <button
                   onClick={handleAddRate}
-                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+                  className="bg-gradient-to-r from-accent-orange to-accent-terracotta text-white px-6 py-2 rounded-lg hover:shadow-lg transition btn-modern"
                 >
                   Save Rate
                 </button>
                 <button
                   onClick={() => setShowAddForm(false)}
-                  className="bg-slate-300 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-400 transition"
+                  className="glass-card bg-white/70 text-warm-700 px-6 py-2 hover:bg-white/90 transition btn-modern"
                 >
                   Cancel
                 </button>
@@ -354,18 +354,18 @@ const NZHomeLoanTracker = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <h2 className="text-2xl font-semibold text-slate-800">Rate Trends</h2>
+          <div className="lg:col-span-2 glass-card bg-white/85 p-4 md:p-6 animate-slide-up">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <h2 className="text-xl md:text-2xl font-bold text-warm-900 font-display">Rate Trends</h2>
               <div className="flex gap-2 flex-wrap">
                 {terms.map(term => (
                   <button
                     key={term.value}
                     onClick={() => setSelectedTerm(term.value)}
-                    className={`px-3 py-1 rounded-lg text-sm transition ${
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
                       selectedTerm === term.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-gradient-to-r from-accent-orange to-accent-terracotta text-white shadow-md'
+                        : 'glass-card bg-white/50 text-warm-700 hover:bg-white/70'
                     }`}
                   >
                     {term.label}
@@ -376,29 +376,30 @@ const NZHomeLoanTracker = () => {
             {getChartData().length > 0 ? (
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={getChartData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ddd0bc" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: '#685a4f' }}
                     tickFormatter={(date) => new Date(date).toLocaleDateString('en-NZ', { month: 'short', year: '2-digit' })}
                   />
                   <YAxis 
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: '#685a4f' }}
                     domain={['dataMin - 0.2', 'dataMax + 0.2']}
                     tickFormatter={(value) => `${value}%`}
                   />
                   <Tooltip 
                     formatter={(value) => `${value}%`}
                     labelFormatter={(date) => new Date(date).toLocaleDateString('en-NZ')}
+                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', border: 'none', borderRadius: '8px' }}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
                   {selectedBanks.map(bank => (
                     <Line
                       key={bank}
                       type="monotone"
                       dataKey={bank}
                       stroke={colors[bank]}
-                      strokeWidth={2}
+                      strokeWidth={3}
                       dot={{ r: 4 }}
                       activeDot={{ r: 6 }}
                     />
@@ -406,35 +407,35 @@ const NZHomeLoanTracker = () => {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-96 flex items-center justify-center text-slate-500">
+              <div className="h-96 flex items-center justify-center text-warm-500">
                 <div className="text-center">
-                  <p className="text-lg mb-2">No data available</p>
+                  <p className="text-lg mb-2 font-medium">No data available</p>
                   <p className="text-sm">Select banks or add rate data to see trends</p>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-semibold text-slate-800 mb-4">Select Banks</h2>
+          <div className="glass-card bg-white/85 p-4 md:p-6 animate-slide-up" style={{animationDelay: '0.1s'}}>
+            <h2 className="text-xl md:text-2xl font-bold text-warm-900 mb-4 font-display">Select Banks</h2>
             <div className="space-y-2">
               {banks.map(bank => (
                 <label
                   key={bank.id}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition"
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-warm-50 cursor-pointer transition"
                 >
                   <input
                     type="checkbox"
                     checked={selectedBanks.includes(bank.name)}
                     onChange={() => toggleBank(bank.name)}
-                    className="w-4 h-4"
+                    className="w-4 h-4 rounded accent-accent-orange"
                   />
                   <div className="flex items-center gap-2 flex-1">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="w-3 h-3 rounded-full shadow-sm"
                       style={{ backgroundColor: colors[bank.name] }}
                     />
-                    <span className="text-slate-700">{bank.name}</span>
+                    <span className="text-warm-800 font-medium">{bank.name}</span>
                   </div>
                 </label>
               ))}
@@ -442,29 +443,32 @@ const NZHomeLoanTracker = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold text-slate-800 mb-4">
+        <div className="glass-card bg-white/85 p-4 md:p-6 animate-slide-up" style={{animationDelay: '0.2s'}}>
+          <h2 className="text-xl md:text-2xl font-bold text-warm-900 mb-4 font-display">
             Current Best Rates - {terms.find(t => t.value === selectedTerm)?.label}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {getCurrentRates().slice(0, 6).map((rate, index) => (
               <div
                 key={`${rate.bank}-${index}`}
-                className="border-l-4 p-4 rounded-lg bg-slate-50"
-                style={{ borderColor: colors[rate.bank] }}
+                className="glass-card bg-gradient-to-br from-warm-50/90 to-warm-100/70 p-4 border-l-4 border-accent-orange hover:shadow-lg transition"
+                style={{ 
+                  borderLeftColor: colors[rate.bank],
+                  animation: `slideUp 0.5s ease-out ${index * 0.1}s both`
+                }}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-slate-800">{rate.bank}</h3>
+                  <h3 className="font-bold text-warm-900">{rate.bank}</h3>
                   {index === 0 && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                    <span className="text-xs bg-gradient-to-r from-accent-orange to-accent-terracotta text-white px-2 py-1 rounded font-semibold badge-accent">
                       Best Rate
                     </span>
                   )}
                 </div>
-                <div className="text-3xl font-bold text-blue-600 mb-1">
+                <div className="text-3xl font-bold bg-gradient-to-r from-accent-orange to-accent-terracotta bg-clip-text text-transparent mb-2">
                   {rate[`term${selectedTerm}`]}%
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-warm-600 font-medium">
                   As of {new Date(rate.date).toLocaleDateString('en-NZ')}
                 </div>
               </div>
