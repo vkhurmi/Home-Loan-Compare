@@ -34,15 +34,15 @@ const App = () => {
   ];
 
   const colors = {
-    'ANZ': '#0066CC',
-    'ASB': '#ED1C24',
-    'BNZ': '#00A9E0',
-    'Westpac': '#DA1710',
-    'Kiwibank': '#8DC63F',
-    'TSB': '#007A33',
-    'SBS': '#FF6600',
+    ANZ: '#0066CC',
+    ASB: '#ED1C24',
+    BNZ: '#00A9E0',
+    Westpac: '#DA1710',
+    Kiwibank: '#8DC63F',
+    TSB: '#007A33',
+    SBS: '#FF6600',
     'Cooperative Bank': '#009639',
-    'HSBC': '#DB0011',
+    HSBC: '#DB0011',
     'China Construction Bank': '#D52B1E'
   };
 
@@ -61,7 +61,7 @@ const App = () => {
       setLoading(true);
       const [banksRes, ratesRes] = await Promise.all([
         fetch(`${API_URL}/api/banks`),
-        fetch(`${API_URL}/api/rates/latest`)
+        fetch(`${API_URL}/api/rates`)
       ]);
 
       if (!banksRes.ok || !ratesRes.ok) throw new Error('Failed to fetch data');
@@ -71,6 +71,7 @@ const App = () => {
 
       setBanks(banksData);
       setRates(ratesData);
+      setSelectedBanks(banksData.map(bank => bank.id));
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -119,6 +120,50 @@ const App = () => {
 
   const handleLogout = () => {
     setUser(null);
+  };
+
+  const getChartData = () => {
+    const termKey = terms.find(t => t.value === selectedTerm)?.key;
+    const dataMap = new Map();
+
+    rates
+      .filter(rate => selectedBanks.length === 0 || selectedBanks.includes(rate.bank_id))
+      .forEach(rate => {
+        const date = rate.rate_date || rate.date;
+        if (!dataMap.has(date)) {
+          dataMap.set(date, { date });
+        }
+        const entry = dataMap.get(date);
+        const bankName = rate.bank_name || rate.bank;
+        const value = parseFloat(rate[termKey]);
+        if (!isNaN(value)) {
+          entry[bankName] = value;
+        }
+      });
+
+    return Array.from(dataMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+  };
+
+  const getCurrentRates = () => {
+    const termKey = terms.find(t => t.value === selectedTerm)?.key;
+    const latestByBank = new Map();
+
+    rates
+      .filter(rate => selectedBanks.length === 0 || selectedBanks.includes(rate.bank_id))
+      .forEach(rate => {
+        const bankName = rate.bank_name || rate.bank;
+        const existing = latestByBank.get(bankName);
+        const rateDate = new Date(rate.rate_date || rate.date);
+        if (!existing || rateDate > new Date(existing.rate_date || existing.date)) {
+          latestByBank.set(bankName, rate);
+        }
+      });
+
+    return Array.from(latestByBank.values()).map(rate => ({
+      bank: rate.bank_name || rate.bank,
+      rate: parseFloat(rate[termKey]) || 0,
+      date: rate.rate_date || rate.date
+    }));
   };
 
   // Mortgage Calculator Component
@@ -309,24 +354,54 @@ const App = () => {
             ) : error ? (
               <p className="text-red-500">{error}</p>
             ) : (
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={rates.filter(rate => selectedBanks.length === 0 || selectedBanks.includes(rate.bank_id))}>
+              <ResponsiveContainer width="100%" height={450}>
+                <LineChart data={getChartData()}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="rate_date" />
-                  <YAxis />
-                  <Tooltip />
+                  <XAxis dataKey="date" tickFormatter={(date) => new Date(date).toLocaleDateString('en-NZ', { month: 'short', year: '2-digit' })} />
+                  <YAxis tickFormatter={(value) => `${value}%`} />
+                  <Tooltip formatter={(value) => `${value}%`} labelFormatter={(date) => new Date(date).toLocaleDateString('en-NZ')} />
                   <Legend />
-                  {banks.map(bank => (
-                    <Line
-                      key={bank.id}
-                      type="monotone"
-                      dataKey={terms.find(t => t.value === selectedTerm)?.key}
-                      stroke={colors[bank.name] || '#8884d8'}
-                      name={bank.name}
-                    />
-                  ))}
+                  {banks
+                    .filter(bank => selectedBanks.length === 0 || selectedBanks.includes(bank.id))
+                    .map(bank => (
+                      <Line
+                        key={bank.id}
+                        type="monotone"
+                        dataKey={bank.name}
+                        stroke={colors[bank.name] || '#8884d8'}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 6 }}
+                      />
+                    ))}
                 </LineChart>
               </ResponsiveContainer>
+            )}
+
+            {!loading && !error && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {getCurrentRates().map((current) => {
+                  const accent = colors[current.bank] || '#8884d8';
+                  return (
+                    <div
+                      key={current.bank}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-slate-50 dark:bg-slate-900 transition-shadow duration-200 hover:shadow-xl hover:-translate-y-0.5"
+                      style={{ borderColor: accent, borderWidth: '1px', borderStyle: 'solid' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: accent }} />
+                        <div>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">{current.bank}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">As of {new Date(current.date).toLocaleDateString('en-NZ')}</p>
+                        </div>
+                      </div>
+                      <div className="text-2xl font-semibold text-slate-900 dark:text-white">
+                        {current.rate}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
