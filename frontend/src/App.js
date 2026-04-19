@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { PlusCircle, RefreshCw, Download, Moon, Sun, Calculator, User, LogOut } from 'lucide-react';
+import { PlusCircle, Moon, Sun, Calculator, User, LogOut } from 'lucide-react';
 
 // Backend API URL
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
