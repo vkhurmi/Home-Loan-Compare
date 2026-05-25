@@ -46,12 +46,14 @@ jobs:
             xdg-utils
 
       - name: Check scraper API URL
+        env:
+          API_URL: ${{ secrets.RAILWAY_BACKEND_URL }}
         run: |
-          if [ -z "${{ secrets.RAILWAY_BACKEND_URL:-}}" ]; then
+          if [ -z "$API_URL" ]; then
             echo "ERROR: RAILWAY_BACKEND_URL secret is not set"; exit 1
           fi
-          echo "Using API_URL=${{ secrets.RAILWAY_BACKEND_URL }}"
-          curl -sSf "${{ secrets.RAILWAY_BACKEND_URL }}/api/banks" -o /tmp/api-banks.json
+          echo "Using API_URL=$API_URL"
+          curl -sSf "$API_URL/api/banks" -o /tmp/api-banks.json
           echo "Successfully fetched /api/banks"
 
       - name: Debug scraper folder
