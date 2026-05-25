@@ -10,6 +10,8 @@ on:
 jobs:
   scrape-rates:
     runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ secrets.RAILWAY_BACKEND_URL }}
     
     steps:
       - name: Checkout repository
@@ -46,8 +48,6 @@ jobs:
             xdg-utils
 
       - name: Check scraper API URL
-        env:
-          API_URL: ${{ secrets.RAILWAY_BACKEND_URL }}
         run: |
           if [ -z "$API_URL" ]; then
             echo "ERROR: RAILWAY_BACKEND_URL secret is not set"; exit 1
@@ -82,8 +82,6 @@ jobs:
               
       - name: Run scraper
         working-directory: ./scraper
-        env:
-          API_URL: ${{ secrets.RAILWAY_BACKEND_URL }}
         run: node scraper.js --now
       
       - name: Check results

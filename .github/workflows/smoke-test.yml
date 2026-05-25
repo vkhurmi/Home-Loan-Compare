@@ -2,9 +2,12 @@ name: Smoke tests
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   deployment_status:
-    types: ["success", "created"]
+    types:
+      - success
+      - created
   workflow_dispatch:
 
 jobs:
@@ -21,18 +24,20 @@ jobs:
       - name: Run smoke tests
         env:
           PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+          RAILWAY_BACKEND_URL: ${{ secrets.RAILWAY_BACKEND_URL }}
         run: |
           set -euo pipefail
-          if [ -z "${PRODUCTION_URL:-}" ]; then
-            echo "ERROR: PRODUCTION_URL secret is not set"; exit 1
+          PROD_URL="${PRODUCTION_URL:-${RAILWAY_BACKEND_URL:-}}"
+          if [ -z "$PROD_URL" ]; then
+            echo "ERROR: PRODUCTION_URL or RAILWAY_BACKEND_URL secret is not set"; exit 1
           fi
 
-          echo "Checking health endpoint: $PRODUCTION_URL/health"
+          echo "Checking health endpoint: $PROD_URL/health"
           # retry a few times in case the service is still warm
           n=0
           until [ $n -ge 5 ]
           do
-            if curl -sSf "$PRODUCTION_URL/health" -o /tmp/health.json; then
+            if curl -sSf "$PROD_URL/health" -o /tmp/health.json; then
               echo "Health response:"; cat /tmp/health.json
               jq -e '.status == "ok"' /tmp/health.json
               echo "Health OK"; break
@@ -45,7 +50,7 @@ jobs:
             echo "Health endpoint did not return OK after retries"; exit 1
           fi
 
-          echo "Checking API endpoint: $PRODUCTION_URL/api/rates/latest"
-          curl -sSf "$PRODUCTION_URL/api/rates/latest" -o /tmp/latest.json
+          echo "Checking API endpoint: $PROD_URL/api/rates/latest"
+          curl -sSf "$PROD_URL/api/rates/latest" -o /tmp/latest.json
           echo "API /api/rates/latest returned:"; jq -c '.' /tmp/latest.json | sed -n '1,5p'
           echo "Smoke tests passed"

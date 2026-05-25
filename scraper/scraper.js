@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer');
 const axios = require('axios');
 require('dotenv').config();
 
-const API_URL = process.env.API_URL || 'https://home-loan-compare-production.up.railway.app';
+const API_URL = process.env.API_URL;
 const MAX_API_RETRIES = process.env.SCRAPER_API_RETRIES ? parseInt(process.env.SCRAPER_API_RETRIES, 10) : 3;
 const DRY_RUN = process.env.DRY_RUN === '1' || process.env.SKIP_SAVE === '1';
 
