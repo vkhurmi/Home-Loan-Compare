@@ -4,6 +4,8 @@ const axios = require('axios');
 require('dotenv').config();
 
 const API_URL = process.env.API_URL || 'https://home-loan-compare-production.up.railway.app';
+const MAX_API_RETRIES = process.env.SCRAPER_API_RETRIES ? parseInt(process.env.SCRAPER_API_RETRIES, 10) : 3;
+const DRY_RUN = process.env.DRY_RUN === '1' || process.env.SKIP_SAVE === '1';
 
 // Helper function to wait
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -63,7 +65,7 @@ const bankScrapers = {
       console.log('  Raw rates found:', rates);
       return rates;
     } catch (error) {
-      console.error('  ANZ scraping error:', error.message);
+      console.error('  ANZ scraping error:', error && error.stack ? error.stack : error);
       return null;
     }
   },
@@ -127,7 +129,7 @@ const bankScrapers = {
       console.log('  Raw rates found:', rates);
       return rates;
     } catch (error) {
-      console.error('  ASB scraping error:', error.message);
+      console.error('  ASB scraping error:', error && error.stack ? error.stack : error);
       return null;
     }
   },
@@ -216,7 +218,7 @@ const bankScrapers = {
       console.log('  Raw rates found:', rates);
       return rates;
     } catch (error) {
-      console.error('  BNZ scraping error:', error.message);
+      console.error('  BNZ scraping error:', error && error.stack ? error.stack : error);
       return null;
     }
   },
@@ -305,7 +307,7 @@ const bankScrapers = {
       console.log('  Raw rates found:', rates);
       return rates;
     } catch (error) {
-      console.error('  Westpac scraping error:', error.message);
+      console.error('  Westpac scraping error:', error && error.stack ? error.stack : error);
       return null;
     }
   },
@@ -356,7 +358,7 @@ const bankScrapers = {
       console.log('  Raw rates found:', rates);
       return rates;
     } catch (error) {
-      console.error('  Kiwibank scraping error:', error.message);
+      console.error('  Kiwibank scraping error:', error && error.stack ? error.stack : error);
       return null;
     }
   }
@@ -364,40 +366,102 @@ const bankScrapers = {
 
 // Get bank ID from API
 const getBankId = async (bankName) => {
-  try {
-    const response = await axios.get(`${API_URL}/api/banks`);
-    const bank = response.data.find(b => b.name === bankName);
-    return bank ? bank.id : null;
-  } catch (error) {
-    console.error('Error fetching bank ID:', error.message);
+  if (DRY_RUN) {
+    console.log(`  DRY_RUN enabled - skipping getBankId for ${bankName}`);
     return null;
   }
+
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_API_RETRIES; attempt++) {
+    try {
+      console.log(`  getBankId: fetching banks (attempt ${attempt}/${MAX_API_RETRIES})`);
+      const response = await axios.get(`${API_URL}/api/banks`, { timeout: 15000 });
+      const bank = response.data.find(b => b.name === bankName);
+      return bank ? bank.id : null;
+    } catch (error) {
+      lastErr = error;
+      console.error(`  getBankId attempt ${attempt} failed:`, error && error.stack ? error.stack : error);
+      if (error && error.code) console.error('   Error code:', error.code);
+      if (error && error.response) {
+        console.error('   Response status:', error.response.status);
+        console.error('   Response data:', JSON.stringify(error.response.data));
+      }
+
+      if (attempt < MAX_API_RETRIES) {
+        const backoff = 1000 * Math.pow(2, attempt - 1);
+        console.log(`   Retrying after ${backoff}ms...`);
+        await sleep(backoff);
+      }
+    }
+  }
+
+  console.error('  getBankId: all attempts failed');
+  if (lastErr) {
+    console.error(lastErr && lastErr.stack ? lastErr.stack : lastErr);
+  }
+  return null;
 };
 
 // Save rates to API
 const saveRates = async (bankId, rates) => {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const rateData = {
-      bank_id: bankId,
-      rate_date: today,
-      ...rates
-    };
-
-    const response = await axios.post(`${API_URL}/api/rates`, rateData);
-    console.log(`  ✓ Saved rates for bank ID ${bankId}`);
-    return response.data;
-  } catch (error) {
-    console.error(`  Error saving rates for bank ID ${bankId}:`, error.message);
-    return null;
+  if (DRY_RUN) {
+    console.log(`  DRY_RUN enabled - not saving rates for bank ID ${bankId}. Rates:`, rates);
+    return { dryRun: true };
   }
+
+  let lastErr;
+  const today = new Date().toISOString().split('T')[0];
+  const rateData = {
+    bank_id: bankId,
+    rate_date: today,
+    ...rates
+  };
+
+  for (let attempt = 1; attempt <= MAX_API_RETRIES; attempt++) {
+    try {
+      console.log(`  saveRates: posting rates for bank ${bankId} (attempt ${attempt}/${MAX_API_RETRIES})`);
+      const response = await axios.post(`${API_URL}/api/rates`, rateData, { timeout: 15000 });
+      console.log(`  ✓ Saved rates for bank ID ${bankId}`);
+      return response.data;
+    } catch (error) {
+      lastErr = error;
+      console.error(`  saveRates attempt ${attempt} failed:`, error && error.stack ? error.stack : error);
+      if (error && error.code) console.error('   Error code:', error.code);
+      if (error && error.response) {
+        console.error('   Response status:', error.response.status);
+        try {
+          console.error('   Response data:', JSON.stringify(error.response.data));
+        } catch (jsonErr) {
+          console.error('   Response data (raw):', error.response.data);
+        }
+      }
+
+      if (attempt < MAX_API_RETRIES) {
+        const backoff = 1000 * Math.pow(2, attempt - 1);
+        console.log(`   Retrying after ${backoff}ms...`);
+        await sleep(backoff);
+      }
+    }
+  }
+
+  console.error('  saveRates: all attempts failed');
+  if (lastErr) console.error(lastErr && lastErr.stack ? lastErr.stack : lastErr);
+  return null;
 };
 
 // Main scraping function
 const scrapeAllBanks = async () => {
   console.log('🚀 Starting rate scraping...\n');
+  console.log('Environment: NODE_VERSION=%s, API_URL=%s, CI=%s', process.version, API_URL, process.env.CI || 'false');
+  console.log('Puppeteer env vars: PUPPETEER_EXECUTABLE_PATH=%s, CHROME_BIN=%s, CHROME_PATH=%s', process.env.PUPPETEER_EXECUTABLE_PATH || '', process.env.CHROME_BIN || '', process.env.CHROME_PATH || '');
+
+  if (!API_URL && !DRY_RUN) {
+    console.error('Missing API_URL. Set API_URL env or use DRY_RUN=1 to skip API calls.');
+    throw new Error('API_URL is required');
+  }
   
-  const browser = await puppeteer.launch({
+  // Robust Puppeteer launch with retries and helpful logging for CI environments
+  const defaultLaunchOpts = {
     headless: 'new',
     args: [
       '--no-sandbox',
@@ -406,7 +470,49 @@ const scrapeAllBanks = async () => {
       '--disable-web-security',
       '--disable-features=IsolateOrigins,site-per-process'
     ]
-  });
+  };
+
+  const tryLaunch = async (opts) => {
+    console.log('Launching Puppeteer with options:', {
+      headless: opts.headless,
+      hasExecutablePath: !!opts.executablePath,
+      args: opts.args && opts.args.length
+    });
+
+    try {
+      return await puppeteer.launch(opts);
+    } catch (err) {
+      console.error('Puppeteer launch error:', err && err.stack ? err.stack : err);
+      throw err;
+    }
+  };
+
+  let browser;
+  try {
+    browser = await tryLaunch(defaultLaunchOpts);
+  } catch (firstErr) {
+    // Retry with environment-provided Chrome/Chromium binary if available
+    const execPath = process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH;
+    if (execPath) {
+      console.log('Retrying Puppeteer launch with executablePath from env:', execPath);
+      try {
+        browser = await tryLaunch(Object.assign({}, defaultLaunchOpts, { executablePath: execPath }));
+      } catch (secondErr) {
+        console.error('Puppeteer retry with executablePath failed:', secondErr && secondErr.stack ? secondErr.stack : secondErr);
+        throw secondErr;
+      }
+    } else {
+      // Final fallback: try headless boolean and no sandbox args removed
+      console.log('No executablePath found in environment; retrying with headless:true fallback');
+      try {
+        const fallbackOpts = Object.assign({}, defaultLaunchOpts, { headless: true });
+        browser = await tryLaunch(fallbackOpts);
+      } catch (thirdErr) {
+        console.error('All Puppeteer launch attempts failed. See logs for details.');
+        throw thirdErr;
+      }
+    }
+  }
 
   const results = [];
 
@@ -421,22 +527,26 @@ const scrapeAllBanks = async () => {
       
       if (rates && Object.keys(rates).length > 0) {
         console.log(`  ✓ Found rates:`, rates);
-        
-        const bankId = await getBankId(bankName);
-        if (bankId) {
-          const saved = await saveRates(bankId, rates);
-          results.push({ bank: bankName, success: !!saved, rates });
+        if (DRY_RUN) {
+          console.log(`  DRY_RUN enabled - skipping API calls for ${bankName}`);
+          results.push({ bank: bankName, success: true, rates, dryRun: true });
         } else {
-          console.log(`  ⚠ Bank ${bankName} not found in database`);
-          results.push({ bank: bankName, success: false, error: 'Bank not found' });
+          const bankId = await getBankId(bankName);
+          if (bankId) {
+            const saved = await saveRates(bankId, rates);
+            results.push({ bank: bankName, success: !!saved, rates });
+          } else {
+            console.log(`  ⚠ Bank ${bankName} not found in database`);
+            results.push({ bank: bankName, success: false, error: 'Bank not found' });
+          }
         }
       } else {
         console.log(`  ⚠ No rates found for ${bankName}`);
         results.push({ bank: bankName, success: false, error: 'No rates found' });
       }
     } catch (error) {
-      console.error(`  ✗ Error scraping ${bankName}:`, error.message);
-      results.push({ bank: bankName, success: false, error: error.message });
+      console.error(`  ✗ Error scraping ${bankName}:`, error && error.stack ? error.stack : error);
+      results.push({ bank: bankName, success: false, error: error && error.message ? error.message : String(error) });
     } finally {
       await page.close();
     }

@@ -28,7 +28,7 @@ jobs:
             ca-certificates \
             fonts-liberation \
             libappindicator3-1 \
-            libasound2t64 \
+            libasound2 \
             libatk-bridge2.0-0 \
             libatk1.0-0 \
             libcups2 \
@@ -45,6 +45,15 @@ jobs:
             libxrandr2 \
             xdg-utils
 
+      - name: Check scraper API URL
+        run: |
+          if [ -z "${{ secrets.RAILWAY_BACKEND_URL:-}}" ]; then
+            echo "ERROR: RAILWAY_BACKEND_URL secret is not set"; exit 1
+          fi
+          echo "Using API_URL=${{ secrets.RAILWAY_BACKEND_URL }}"
+          curl -sSf "${{ secrets.RAILWAY_BACKEND_URL }}/api/banks" -o /tmp/api-banks.json
+          echo "Successfully fetched /api/banks"
+
       - name: Debug scraper folder
         run: |
           ls -la ./scraper
@@ -58,12 +67,21 @@ jobs:
           npm config set progress=false
           npm ci --silent
         timeout-minutes: 10
+
+      - name: Detect Chromium executable
+        run: |
+          if [ -x "/usr/bin/chromium-browser" ]; then
+            echo "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser" >> $GITHUB_ENV
+          elif [ -x "/usr/bin/chromium" ]; then
+            echo "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium" >> $GITHUB_ENV
+          else
+            echo "ERROR: Chromium binary not found"; exit 1
+          fi
               
       - name: Run scraper
         working-directory: ./scraper
         env:
           API_URL: ${{ secrets.RAILWAY_BACKEND_URL }}
-          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
         run: node scraper.js --now
       
       - name: Check results
