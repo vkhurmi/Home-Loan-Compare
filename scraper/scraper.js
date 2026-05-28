@@ -402,6 +402,87 @@ const getBankId = async (bankName) => {
   return null;
 };
 
+// Get the last saved rates for a bank
+const getLastRates = async (bankId) => {
+  if (DRY_RUN) {
+    console.log(`  DRY_RUN enabled - skipping getLastRates for bank ID ${bankId}`);
+    return null;
+  }
+
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_API_RETRIES; attempt++) {
+    try {
+      console.log(`  getLastRates: fetching last rates for bank ${bankId} (attempt ${attempt}/${MAX_API_RETRIES})`);
+      const response = await axios.get(`${API_URL}/api/rates/bank/${bankId}/latest`, { timeout: 15000 });
+      return response.data || null;
+    } catch (error) {
+      // 404 is expected if no rates exist yet
+      if (error && error.response && error.response.status === 404) {
+        console.log(`  getLastRates: No previous rates found for bank ${bankId} (404)`);
+        return null;
+      }
+
+      lastErr = error;
+      console.error(`  getLastRates attempt ${attempt} failed:`, error && error.stack ? error.stack : error);
+      if (error && error.code) console.error('   Error code:', error.code);
+      if (error && error.response) {
+        console.error('   Response status:', error.response.status);
+        try {
+          console.error('   Response data:', JSON.stringify(error.response.data));
+        } catch (jsonErr) {
+          console.error('   Response data (raw):', error.response.data);
+        }
+      }
+
+      if (attempt < MAX_API_RETRIES) {
+        const backoff = 1000 * Math.pow(2, attempt - 1);
+        console.log(`   Retrying after ${backoff}ms...`);
+        await sleep(backoff);
+      }
+    }
+  }
+
+  console.error('  getLastRates: all attempts failed');
+  if (lastErr) console.error(lastErr && lastErr.stack ? lastErr.stack : lastErr);
+  return null;
+};
+
+// Compare current rates with last rates to detect changes
+const hasRateChanged = (currentRates, lastRates) => {
+  if (!lastRates) {
+    console.log('  💡 No previous rates found - rates are new');
+    return true;
+  }
+
+  const rateFields = ['term_1year', 'term_2year', 'term_3year', 'term_5year'];
+  let hasChanges = false;
+  const changes = [];
+
+  rateFields.forEach(field => {
+    const current = currentRates[field];
+    const last = lastRates[field];
+
+    if (current !== undefined && current !== null) {
+      if (last === undefined || last === null) {
+        changes.push(`${field}: new (${current}%)`);
+        hasChanges = true;
+      } else if (Math.abs(current - last) > 0.001) { // Use small tolerance for floating point
+        changes.push(`${field}: ${last}% → ${current}%`);
+        hasChanges = true;
+      }
+    }
+  });
+
+  if (hasChanges) {
+    console.log('  ⚡ Rate changes detected:');
+    changes.forEach(change => console.log(`     ${change}`));
+  } else {
+    console.log('  ✓ No rate changes detected - skipping update');
+  }
+
+  return hasChanges;
+};
+
 // Save rates to API
 const saveRates = async (bankId, rates) => {
   if (DRY_RUN) {
@@ -533,8 +614,16 @@ const scrapeAllBanks = async () => {
         } else {
           const bankId = await getBankId(bankName);
           if (bankId) {
-            const saved = await saveRates(bankId, rates);
-            results.push({ bank: bankName, success: !!saved, rates });
+            // Fetch last rates and compare
+            const lastRates = await getLastRates(bankId);
+            
+            if (hasRateChanged(rates, lastRates)) {
+              const saved = await saveRates(bankId, rates);
+              results.push({ bank: bankName, success: !!saved, rates, rateChanged: true });
+            } else {
+              console.log(`  💾 Skipping save - rates unchanged for ${bankName}`);
+              results.push({ bank: bankName, success: true, rates, rateChanged: false, skipped: true });
+            }
           } else {
             console.log(`  ⚠ Bank ${bankName} not found in database`);
             results.push({ bank: bankName, success: false, error: 'Bank not found' });
@@ -559,6 +648,8 @@ const scrapeAllBanks = async () => {
   console.log('\n📈 Scraping Summary:');
   console.log(`Total banks: ${results.length}`);
   console.log(`Successful: ${results.filter(r => r.success).length}`);
+  console.log(`Rate updates: ${results.filter(r => r.rateChanged === true).length}`);
+  console.log(`Skipped (no changes): ${results.filter(r => r.skipped).length}`);
   console.log(`Failed: ${results.filter(r => !r.success).length}`);
   
   return results;
