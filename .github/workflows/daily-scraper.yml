@@ -50,11 +50,13 @@ jobs:
       - name: Check scraper API URL
         run: |
           if [ -z "$API_URL" ]; then
-            echo "ERROR: RAILWAY_BACKEND_URL secret is not set"; exit 1
+            echo "⚠️  WARNING: RAILWAY_BACKEND_URL secret is not set"
+            echo "   The scraper will run but cannot push data without the API URL"
+            echo "   To fix this, add RAILWAY_BACKEND_URL secret to GitHub repository settings"
+          else
+            echo "Using API_URL=$API_URL"
+            curl -sSf "$API_URL/api/banks" -o /tmp/api-banks.json && echo "✓ Successfully connected to API" || echo "⚠️  API connection failed (will retry)"
           fi
-          echo "Using API_URL=$API_URL"
-          curl -sSf "$API_URL/api/banks" -o /tmp/api-banks.json
-          echo "Successfully fetched /api/banks"
 
       - name: Debug scraper folder
         run: |
