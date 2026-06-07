@@ -15,12 +15,12 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       
       - name: Install Puppeteer dependencies
         run: |
@@ -82,7 +82,10 @@ jobs:
               
       - name: Run scraper
         working-directory: ./scraper
-        run: node scraper.js --now
+        run: |
+          echo "Starting scraper with API_URL: ${API_URL:0:20}..."
+          node scraper.js --now
+          echo "Scraper exit code: $?"
       
       - name: Check results
         if: success()

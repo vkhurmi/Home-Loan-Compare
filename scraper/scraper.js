@@ -682,11 +682,17 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   
   if (args.includes('--now')) {
-    scrapeAllBanks().then(() => {
-      if (!args.includes('--schedule')) {
-        process.exit(0);
-      }
-    });
+    scrapeAllBanks()
+      .then((results) => {
+        console.log('\n✅ Scraping job completed successfully');
+        if (!args.includes('--schedule')) {
+          process.exit(0);
+        }
+      })
+      .catch((error) => {
+        console.error('\n❌ Scraping job failed with error:', error && error.stack ? error.stack : error);
+        process.exit(1);
+      });
   }
   
   if (args.includes('--schedule')) {
