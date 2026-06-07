@@ -72,19 +72,21 @@ async function getBankStatistics() {
 async function createBackup() {
   try {
     log('Creating backup table...', 'yellow');
+    const backupTableName = `rates_backup_${Date.now()}`;
+
     await pool.query(`
-      DROP TABLE IF EXISTS rates_backup_${new Date().getTime()};
+      DROP TABLE IF EXISTS ${backupTableName};
     `);
     await pool.query(`
-      CREATE TABLE rates_backup_${new Date().getTime()} AS SELECT * FROM rates;
+      CREATE TABLE ${backupTableName} AS SELECT * FROM rates;
     `);
     
     const backupResult = await pool.query(`
-      SELECT COUNT(*) FROM rates_backup_${new Date().getTime()};
+      SELECT COUNT(*) FROM ${backupTableName};
     `);
     const backupCount = backupResult.rows[0].count;
     log(`✓ Backup created with ${backupCount} entries`, 'green');
-    return `rates_backup_${new Date().getTime()}`;
+    return backupTableName;
   } catch (error) {
     log(`Error creating backup: ${error.message}`, 'red');
     throw error;
