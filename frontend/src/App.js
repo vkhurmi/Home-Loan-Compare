@@ -243,7 +243,7 @@ const App = () => {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-md p-4">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">NZ Home Loan Tracker</h1>
+          <h1 className="text-2xl font-bold">NZ Loan Tracker</h1>
           <nav className="flex items-center space-x-4">
             <button
               onClick={() => setShowCalculator(!showCalculator)}
